@@ -1,0 +1,39 @@
+---
+- name: "Installation apache"
+  hosts: prod
+  become: true
+  vars_files:
+    - files/secrets/credentials.yml
+  pre_tasks:
+    - name: Install some package 
+      package: name='{{ item }}' state=present
+      when: ansible_distribution == "CentOS"
+      loop:
+        - epel-release
+        - wget
+        - git
+
+    - name: telecharger le script de pip
+      get_url:
+        url: https://bootstrap.pypa.io/pip/2.7/get-pip.py
+        dest: /tmp/get-pip.py
+
+    - name: installation de  python-pip
+      command: python2.7 /tmp/get-pip.py
+
+    - name: Installation de docker python
+      pip: name=docker-py
+  tasks:
+    - name: Copie du template du site web
+      template:
+        src: index.html.j2
+        dest: /home/admin/index.html
+
+    - name: Creation du container apache
+      docker_container:
+        name: webapp
+        image: httpd
+        ports:
+          - "80:80"
+        volumes:
+          - /home/admin/index.html:/usr/local/apache2/htdocs/index.html
